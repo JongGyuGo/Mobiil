@@ -145,7 +145,7 @@ https://user-images.githubusercontent.com/109054053/202375412-e5092ff5-d5db-45c4
 		return gson.toJson(arr);
 	}
 	
-	  	 <!-- 월별 예약 건수  -->
+	 <!-- 월별 예약 건수  -->
   	 <select id="getRegervationCountByMonth" resultType="map">
  		SELECT TO_CHAR(A.RESERV_DATE, 'YYYY-MM') as RESERV_DATE, COUNT(B.RESERV_DATE) as RevCount
         FROM MONTH_TBL A
