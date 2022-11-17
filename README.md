@@ -48,18 +48,132 @@
    
 https://user-images.githubusercontent.com/109054053/202122427-f0d51ef0-390e-4669-b3a3-29743d5748c8.mp4
 	
+	- 해당 호스트가 등록한 공간을 예약한 예약자 정보를 불러와서 예약한 일자에 보여준다.
+	
 <br>
 
 * <b>기간별 판매 금액 확인</b>
 
-https://user-images.githubusercontent.com/109054053/202122846-0a6d3032-7818-407c-a770-698171724c5d.mp4
+https://user-images.githubusercontent.com/109054053/202375613-b0420b3d-9cba-4c70-82cc-297c046c30b2.mp4
 
+	- 조회하고싶은 기간을 선택하게되면 예약 리스트를 보여주고, 그 기간내의 총 판매금액을 보여준다.
+	
+	<!-- 정산 확인 총 금액  -->
+	  <select id="priceSumByHostemail" resultType="_int">
+	  	SELECT SUM((REV_END-REV_START)*PRICE) AS PRICE
+	  	FROM RESERVATION_TBL
+	  	WHERE RESERV_DATE BETWEEN  #{date1} AND #{date2} AND HOST_EMAIL = #{hostEmail}
+	  </select>
 <br>
 	
 * <b>월별 데이터 현황</b>
 
-https://user-images.githubusercontent.com/109054053/202123506-62a7eeeb-70cf-40e5-9c27-baae7586c8da.mp4
+https://user-images.githubusercontent.com/109054053/202375412-e5092ff5-d5db-45c4-811f-624238cb0f28.mp4
 
+	- 해당 호스트의 월별 예약 현황, 월별 공간 갯수, 월별 판매 금액을 차트로 보여준다.
+	
+	/**
+	 * 월별 예약 건수
+	 * @param request
+	 * @return
+	 */
+	@ResponseBody
+	@RequestMapping(value="/host/drawspaceChart.kh", method = RequestMethod.GET, produces = "application/json;charset=utf-8")
+	public String drawspaceChart(HttpServletRequest request) {
+		Gson gson = new Gson();
+		
+		HttpSession session = request.getSession();
+		Host host = (Host) session.getAttribute("loginHost");
+		String hostEmail = host.getHostEmail();
+		
+		List<Reservation> result = hService.getRegervationCountByMonth(hostEmail);
+		JSONObject obj = new JSONObject();
+		obj.put("result", result);
+		JSONArray arr = new JSONArray();
+		arr.add(obj);
+		return gson.toJson(arr);
+	}
+	
+	/**
+	 * 월별 공간 등록수
+	 * @param request
+	 * @return
+	 */
+	@ResponseBody
+	@RequestMapping(value="/host/spaceChart.kh", method = RequestMethod.GET, produces = "application/json;charset=utf-8")
+	public String drawspaceChart2(HttpServletRequest request) {
+		Gson gson = new Gson();
+		
+		HttpSession session = request.getSession();
+		Host host = (Host)session.getAttribute("loginHost");
+		String hostEmail = host.getHostEmail();
+		
+		List<Space> result = hService.getSpaceCountByMonth(hostEmail);
+		
+		JSONObject obj = new JSONObject();
+		obj.put("result", result);
+		
+		JSONArray arr = new JSONArray();
+		arr.add(obj);
+		
+		return gson.toJson(arr);
+	}
+	
+	/**
+	 * 월별 판매금액
+	 * @param request
+	 * @return
+	 */
+	@ResponseBody
+	@RequestMapping(value="/host/profitChart.kh", method = RequestMethod.GET, produces="application/json;charset=utf-8")
+	public String drawProfitChart(HttpServletRequest request) {
+		
+		Gson gson = new Gson();
+		
+		HttpSession session = request.getSession();
+		Host host = (Host)session.getAttribute("loginHost");
+		String hostEmail = host.getHostEmail();
+		
+		List<Reservation> result = hService.getProfitByMonth(hostEmail);
+		
+		JSONObject obj = new JSONObject();
+		obj.put("result", result);
+		
+		JSONArray arr = new JSONArray();
+		arr.add(obj);
+		
+		return gson.toJson(arr);
+	}
+	
+	  	 <!-- 월별 예약 건수  -->
+  	 <select id="getRegervationCountByMonth" resultType="map">
+ 		SELECT TO_CHAR(A.RESERV_DATE, 'YYYY-MM') as RESERV_DATE, COUNT(B.RESERV_DATE) as RevCount
+        FROM MONTH_TBL A
+        LEFT OUTER JOIN RESERVATION_TBL B ON (TO_CHAR(A.RESERV_DATE,'YYYY-MM') = TO_CHAR( B.RESERV_DATE, 'YYYY-MM'))
+        AND B.RESERV_STATUS = 'Y' AND B.HOST_EMAIL = #{hostEmail}
+        GROUP BY TO_CHAR(A.RESERV_DATE, 'YYYY-MM')
+        ORDER BY RESERV_DATE
+  	 </select>
+  	   	 
+  	 <!-- 월별 공간수 -->
+  	 <select id="getSpaceCountByMonth" resultType="map">
+  	 	SELECT TO_CHAR(A.RESERV_DATE, 'YYYY-MM') AS RESERV_DATE, COUNT(B.SPACE_NO) as SpaCount
+	    FROM MONTH_TBL A
+	    LEFT OUTER JOIN SPACE_TBL B ON (TO_CHAR(A.RESERV_DATE,'YYYY-MM') = TO_CHAR(B.APPROVAL_DATE, 'YYYY-MM'))
+	    AND B.SPACE_STATUS = 'Y' AND B.HOST_EMAIL = #{hostEmail}
+        GROUP BY TO_CHAR(A.RESERV_DATE, 'YYYY-MM')
+	    ORDER BY RESERV_DATE
+  	 </select>
+  	 
+  	 <!-- 월별 판매금액 -->
+  	 <select id="getProfitByMonth" resultType="map">
+  	 	SELECT TO_CHAR(A.RESERV_DATE, 'YYYY-MM') AS RESERV_DATE, SUM(FLOOR(B.REV_END-B.REV_START)*B.PRICE) as PRICE
+	    FROM MONTH_TBL A
+        LEFT OUTER JOIN RESERVATION_TBL B ON (TO_CHAR(A.RESERV_DATE,'YYYY-MM') = TO_CHAR(B.RESERV_DATE, 'YYYY-MM'))
+	    AND B.RESERV_STATUS = 'Y' AND B.HOST_EMAIL = #{hostEmail}
+	    GROUP BY TO_CHAR(A.RESERV_DATE, 'YYYY-MM')
+	    ORDER BY RESERV_DATE, 'YYYY-MM'
+  	 </select>
 <br>
 	
 * <b>기타 기능</b>
